@@ -144,12 +144,12 @@ public:
     /// @brief Retrieve a reference to the element in the array with the given index
     /// @param idx Index of the element reference to retrieve
     /// @return Reference to the element at the given index, idx.
-    virtual inline T &operator[](std::size_t idx) { return this->_vec[idx]; }
+    virtual inline T &operator[](std::size_t idx) { return this->_vec[idx % this->_size]; }
 
     /// @brief Retrieve a local copy of the element in the array with the given index
     /// @param idx Index of the element to copy and return to calling routine
     /// @return Copy of the value of the element at given index
-    virtual inline T get(std::size_t idx) const { return this->_vec[idx]; }
+    virtual inline T get(std::size_t idx) const { return this->_vec[idx % this->_size]; }
 
     /// @brief Perform a map from one vector to another bystransforming the
     /// source vector to the destination using the given function applied
@@ -187,13 +187,13 @@ public:
     /// the entire vector into a single value of type T.
     /// @param fn Function used to operate on each element successively to accumulate
     /// the single value the reduce function will return
-    /// @param init Initial value to use as the final value is accumulated
     /// @return Reduced value of the vector when the given function is applied
-    virtual T reduce(
-        std::function<T(T, T)> fn,
-        T init = T()) const
+    virtual T reduce(std::function<T(T, T)> fn) const
     {
-        return std::accumulate(this->_vec, this->_vec + this->_size, init, fn);
+        T init = *(this->_vec);
+        const T *start = this->_vec + 1;
+        const T *end = this->_vec + this->_size;
+        return this->_size > 1 ? std::accumulate(start, end, init, fn) : init;
     }
 
     /// @brief Produce and return a string representation of the vector
@@ -378,7 +378,7 @@ bool operator==(const vec<T> &x, const vec<T> &y)
                                                  { return l == r; });
 
     return cmp.reduce([](bool l, bool r) -> bool
-                      { return l && r; }, true);
+                      { return l && r; });
 }
 
 /// @brief Compare two vectors and return true if they are not equal
@@ -411,7 +411,7 @@ template <typename T>
 T prod(const vec<T> &x)
 {
     return x.reduce([](const T &l, const T &r) -> T
-                    { return l * r; }, T(1));
+                    { return l * r; });
 }
 
 /// @brief Return the inner (i.e. dot) product of the two vectors

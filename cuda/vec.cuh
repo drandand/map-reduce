@@ -293,12 +293,12 @@ public:
     /// @brief Retrieve a reference to the element in the array with the given index
     /// @param idx Index of the element reference to retrieve
     /// @return Reference to the element at the given index, idx.
-    virtual T &operator[](std::size_t idx) { return this->_h_vec[idx]; }
+    virtual T &operator[](std::size_t idx) { return this->_h_vec[idx % this->_size]; }
 
     /// @brief Retrieve a local copy of the element in the array with the given index
     /// @param idx Index of the element to copy and return to calling routine
     /// @return Copy of the value of the element at given index
-    virtual T get(std::size_t idx) const { return this->_h_vec[idx]; }
+    virtual T get(std::size_t idx) const { return this->_h_vec[idx % this->_size]; }
 
     /// @brief Perform a map from one vector to another by transforming the
     /// source vector to the destination using the given function applied
