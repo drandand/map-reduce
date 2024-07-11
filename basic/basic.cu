@@ -99,32 +99,6 @@ double reduceSum(std::size_t size, const double *du)
     return s;
 }
 
-/// @brief Compute the angle between the two vectors given.  This uses
-/// traditional C to perform the computation.
-/// @param size Number of elements in the two vectors
-/// @param u First array on host to use in the angle computation
-/// @param v Second array on host to use in the angle computation
-/// @return Angle (radians) between the two vectors
-double cppAngle(std::size_t size, const double *u, const double *v)
-{
-    // Places to hold the sum for the dot procuct and the
-    // squared magnitude of each of the vectors
-    double uv = 0.0;
-    double u2 = 0.0;
-    double v2 = 0.0;
-
-    // Compute each of the sums
-    for (auto pu = u, pv = v; pu != u + size; ++pu, ++pv)
-    {
-        uv += (*pu) * (*pv);
-        u2 += (*pu) * (*pu);
-        v2 += (*pv) * (*pv);
-    }
-
-    // Compute and return the angle between the two vectors
-    return acos(uv / (sqrt(u2) * sqrt(v2)));
-}
-
 /// @brief Compute the angle between the two given vectors using the CUDA
 /// device
 /// @param size Number of elements in the vectors
@@ -186,6 +160,32 @@ double *genVec(std::size_t size, double mean, double stdev, std::mt19937 &gen)
     }
 
     return vec;
+}
+
+/// @brief Compute the angle between the two vectors given.  This uses
+/// traditional C to perform the computation.
+/// @param size Number of elements in the two vectors
+/// @param u First array on host to use in the angle computation
+/// @param v Second array on host to use in the angle computation
+/// @return Angle (radians) between the two vectors
+double cppAngle(std::size_t size, const double *u, const double *v)
+{
+    // Places to hold the sum for the dot procuct and the
+    // squared magnitude of each of the vectors
+    double uv = 0.0;
+    double u2 = 0.0;
+    double v2 = 0.0;
+
+    // Compute each of the sums
+    for (auto pu = u, pv = v; pu != u + size; ++pu, ++pv)
+    {
+        uv += (*pu) * (*pv);
+        u2 += (*pu) * (*pu);
+        v2 += (*pv) * (*pv);
+    }
+
+    // Compute and return the angle between the two vectors
+    return acos(uv / (sqrt(u2) * sqrt(v2)));
 }
 
 int main(int argc, char *argv[])
