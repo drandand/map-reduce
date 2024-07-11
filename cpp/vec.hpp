@@ -27,7 +27,7 @@ private:
     /// @param size Size used to initialize the member variables of the
     /// class instance.
     vec(std::size_t size)
-        : _size(size)
+        : _size(size), _vec(nullptr)
     {
         assert(this->_size > 0);
         this->_vec = new T[size];
@@ -59,7 +59,7 @@ private:
     /// @param fn Function to combine the left and right elements to compute each element of the new vector
     template <typename L, typename R>
     vec(const vec<L> &l_src, const vec<R> &r_src, std::function<T(L, R, std::size_t)> fn)
-        : _size(l_src._size)
+        : _size(l_src._size), _vec(nullptr)
     {
         assert(this->_size > 0);
         assert(l_src._size == r_src._size);
@@ -134,6 +134,7 @@ public:
         if (this->_vec != nullptr)
         {
             delete[] this->_vec;
+            this->_vec = nullptr;
         }
     }
 

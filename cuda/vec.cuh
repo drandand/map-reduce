@@ -171,7 +171,9 @@ private:
     /// class instance.
     vec(std::size_t size)
         : _size(size),
-          BLOCK_COUNT(div_ceil(size, THREADS_PER_BLOCK))
+          BLOCK_COUNT(div_ceil(size, THREADS_PER_BLOCK)),
+          _h_vec(nullptr),
+          _d_vec(nullptr)
     {
         assert(this->_size > 0);
         _h_vec = new T[size];
@@ -200,7 +202,9 @@ private:
     template <typename L, typename R, typename FUNC>
     vec(const vec<L> &l_src, const vec<R> &r_src, FUNC d_fn)
         : _size(l_src._size),
-          BLOCK_COUNT(div_ceil(l_src._size, THREADS_PER_BLOCK))
+          BLOCK_COUNT(div_ceil(l_src._size, THREADS_PER_BLOCK)),
+          _h_vec(nullptr),
+          _d_vec(nullptr)
     {
         assert(l_src._size == r_src._size);
         this->_h_vec = new T[l_src._size];
@@ -272,11 +276,13 @@ public:
         if (this->_h_vec != nullptr)
         {
             delete[] this->_h_vec;
+            this->_h_vec = nullptr;
         }
 
         if (this->_d_vec != nullptr)
         {
             cudaFree(this->_d_vec);
+            this->_d_vec = nullptr;
         }
     }
 
