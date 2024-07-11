@@ -77,7 +77,7 @@ __global__ void cuda_fn_init(std::size_t size, T *d_res, FUNC d_fn)
 template <typename T, typename S, typename FUNC>
 __global__ void cuda_map(std::size_t size, T *d_res, const S *d_src, FUNC d_fn)
 {
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx < size)
     {
@@ -109,7 +109,7 @@ __global__ void cuda_op(
     const R *d_y,
     FUNC d_fn)
 {
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx < size)
     {
@@ -132,7 +132,7 @@ __global__ void cuda_op(
 template <typename T, typename FUNC>
 __global__ void cuda_step(std::size_t size, T *d_res, const T *d_src, FUNC d_fn)
 {
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
     std::size_t span = (size / 2) + (size % 2);
 
     if (idx < span)
@@ -400,59 +400,6 @@ public:
     friend class vec;
 };
 
-/// @brief Return the sum of all the elements of the given array
-/// @tparam T Type of elements in the given vector and sum
-/// @param x Vector to sum
-/// @return Sum of the vector elements
-template <typename T>
-T sum(const vec<T> &x)
-{
-    return x.reduce([] __device__(const T &l, const T &r) -> T
-                    { return l + r; });
-}
-
-/// @brief Return the product of all the elements of the given array
-/// @tparam T Type of elements in the given vector and multiply
-/// @param x Vector to multiply
-/// @return Product of the vector elements
-template <typename T>
-T prod(const vec<T> &x)
-{
-    return x.reduce([] __device__(const T &l, const T &r) -> T
-                    { return l * r; });
-}
-
-/// @brief Return the inner (i.e. dot) product of the two vectors
-/// @tparam T Type of elements in the vectors and the result
-/// @param x First vector to use in computing the dot product
-/// @param y Second vector to use in computing the dot product
-/// @return Dot product of the two vectors given
-template <typename T>
-T dot(const vec<T> &x, const vec<T> &y)
-{
-    return sum(x * y);
-}
-
-/// @brief Return the square of the magnitude the given vector
-/// @tparam T Type of each element in the vector and the result
-/// @param x Vector to compute the square of the magnitude
-/// @return Square of the magnitude of the given vector
-template <typename T>
-T mag2(const vec<T> &x)
-{
-    return dot(x, x);
-}
-
-/// @brief Return the magnitude of the given vector
-/// @tparam T Type of the elements in the vector and the result
-/// @param x Vector to compute the magnitude of
-/// @return Magnitude of the given vector
-template <typename T>
-T mag(const vec<T> &x)
-{
-    return sqrt(mag2(x));
-}
-
 /// @brief Compute and return the element-wise sum of two vectors
 /// @tparam T Type of elements the two vectors contain
 /// @param x Left operand of the vector addition operation
@@ -621,6 +568,59 @@ template <typename T>
 bool operator!=(const vec<T> &x, const vec<T> &y)
 {
     return !(x == y);
+}
+
+/// @brief Return the sum of all the elements of the given array
+/// @tparam T Type of elements in the given vector and sum
+/// @param x Vector to sum
+/// @return Sum of the vector elements
+template <typename T>
+T sum(const vec<T> &x)
+{
+    return x.reduce([] __device__(const T &l, const T &r) -> T
+                    { return l + r; });
+}
+
+/// @brief Return the product of all the elements of the given array
+/// @tparam T Type of elements in the given vector and multiply
+/// @param x Vector to multiply
+/// @return Product of the vector elements
+template <typename T>
+T prod(const vec<T> &x)
+{
+    return x.reduce([] __device__(const T &l, const T &r) -> T
+                    { return l * r; });
+}
+
+/// @brief Return the inner (i.e. dot) product of the two vectors
+/// @tparam T Type of elements in the vectors and the result
+/// @param x First vector to use in computing the dot product
+/// @param y Second vector to use in computing the dot product
+/// @return Dot product of the two vectors given
+template <typename T>
+T dot(const vec<T> &x, const vec<T> &y)
+{
+    return sum(x * y);
+}
+
+/// @brief Return the square of the magnitude the given vector
+/// @tparam T Type of each element in the vector and the result
+/// @param x Vector to compute the square of the magnitude
+/// @return Square of the magnitude of the given vector
+template <typename T>
+T mag2(const vec<T> &x)
+{
+    return dot(x, x);
+}
+
+/// @brief Return the magnitude of the given vector
+/// @tparam T Type of the elements in the vector and the result
+/// @param x Vector to compute the magnitude of
+/// @return Magnitude of the given vector
+template <typename T>
+T mag(const vec<T> &x)
+{
+    return sqrt(mag2(x));
 }
 
 /// @brief Stream the string representation of the vector to the given output stream
