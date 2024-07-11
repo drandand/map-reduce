@@ -15,13 +15,13 @@
 #define DIV_CEIL(N, D) (((N) / (D)) + ((N) % (D) > 0))
 
 /// @brief Threads per block
-constexpr std::size_t BLOCK_SIZE = 256;
+constexpr std::size_t THREADS_PER_BLOCK = 256;
 
 /// @brief Size of the vectors to operate on
 constexpr std::size_t SIZE = 1024;
 
 /// @brief Number of blocks needed to accommodate the vector
-constexpr std::size_t NUM_BLOCKS = DIV_CEIL(SIZE, BLOCK_SIZE);
+constexpr std::size_t NUM_BLOCKS = DIV_CEIL(SIZE, THREADS_PER_BLOCK);
 
 /// @brief Convenience to convert radians to degrees
 constexpr double RAD_TO_DEG = 180.0 / 3.141592653589793238463;
@@ -44,7 +44,7 @@ unsigned long long time_ns()
 /// @param d_y Vector on the right side of the dot operator
 __global__ void mul(std::size_t size, double *d_res, const double *d_x, const double *d_y)
 {
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx < size)
     {
@@ -58,7 +58,7 @@ __global__ void mul(std::size_t size, double *d_res, const double *d_x, const do
 /// @param d_src Inpur array containing the input array to perform a partial sum upon.
 __global__ void step(std::size_t size, double *d_res, const double *d_src)
 {
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
     std::size_t span = HALF_CEIL(size);
 
     if (idx < span)
@@ -69,105 +69,103 @@ __global__ void step(std::size_t size, double *d_res, const double *d_src)
 
 /// @brief Sum the elements of the vector
 /// @param size Number of elements in the vector
-/// @param d_src Array of values on the CUDA device
+/// @param du Array of values on the CUDA device
 /// @return Sum of the elements in the array given
-double reduceSum(std::size_t size, const double *d_src)
+double reduceSum(std::size_t size, const double *du)
 {
     std::size_t next_size = HALF_CEIL(size);
-    double *d_res;
+    double *dr; // Storage for intermediate results
     bool first = true;
 
-    cudaMalloc(&d_res, next_size * sizeof(double));
+    cudaMalloc(&dr, next_size * sizeof(double));
 
     while (size > 1)
     {
-        const double *d_tmp = first ? d_src : ((const double *)d_res);
-        std::size_t num_blocks = DIV_CEIL(next_size, BLOCK_SIZE);
 
-        step<<<num_blocks, BLOCK_SIZE>>>(size, d_res, d_tmp);
+        const double *dt = first ? du : ((const double *)dr);
+        std::size_t num_blocks = DIV_CEIL(next_size, THREADS_PER_BLOCK);
+
+        step<<<num_blocks, THREADS_PER_BLOCK>>>(size, dr, dt);
         size = next_size;
         next_size = HALF_CEIL(size);
         first = false;
     }
 
-    double h_res;
-    cudaMemcpy(&h_res, d_res, sizeof(double), cudaMemcpyDeviceToHost);
-    cudaFree(d_res);
+    double s; // Place to put the sum
 
-    return h_res;
+    cudaMemcpy(&s, dr, sizeof(double), cudaMemcpyDeviceToHost);
+    cudaFree(dr);
+
+    return s;
 }
 
 /// @brief Compute the angle between the two vectors given.  This uses
 /// traditional C to perform the computation.
 /// @param size Number of elements in the two vectors
-/// @param h_u First array on host to use in the angle computation
-/// @param h_v Second array on host to use in the angle computation
+/// @param u First array on host to use in the angle computation
+/// @param v Second array on host to use in the angle computation
 /// @return Angle (radians) between the two vectors
-double cppAngle(std::size_t size, const double *h_u, const double *h_v)
+double cppAngle(std::size_t size, const double *u, const double *v)
 {
     // Places to hold the sum for the dot procuct and the
     // squared magnitude of each of the vectors
-    double u_dot_v = 0.0;
-    double u_mag2 = 0.0;
-    double v_mag2 = 0.0;
-
-    // Pointers used to iterate through array elements
-    const double *ptr_u = h_u;
-    const double *ptr_v = h_v;
+    double uv = 0.0;
+    double u2 = 0.0;
+    double v2 = 0.0;
 
     // Compute each of the sums
-    for (std::size_t idx = 0; idx < size; ++idx, ++ptr_u, ++ptr_v)
+    for (auto pu = u, pv = v; pu != u + size; ++pu, ++pv)
     {
-        u_dot_v += (*ptr_u) * (*ptr_v);
-        u_mag2 += (*ptr_u) * (*ptr_u);
-        v_mag2 += (*ptr_v) * (*ptr_v);
+        uv += (*pu) * (*pv);
+        u2 += (*pu) * (*pu);
+        v2 += (*pv) * (*pv);
     }
 
     // Compute and return the angle between the two vectors
-    return acos(u_dot_v / (sqrt(u_mag2) * sqrt(v_mag2)));
+    return acos(uv / (sqrt(u2) * sqrt(v2)));
 }
 
 /// @brief Compute the angle between the two given vectors using the CUDA
 /// device
 /// @param size Number of elements in the vectors
-/// @param h_u Array on host containing the first vector
-/// @param h_v Array on host containing the second vector
+/// @param u Array on host containing the first vector
+/// @param v Array on host containing the second vector
 /// @return Angle (radians) between the two vectors
-double cudaAngle(std::size_t size, const double *h_u, const double *h_v)
+double cudaAngle(std::size_t size, const double *u, const double *v)
 {
     // Pointers to arrays on the device
-    double *d_dest;
-    double *d_u;
-    double *d_v;
+    double *dp;
+    double *du;
+    double *dv;
 
     // Allocate space on the device for each of the vectors
-    cudaMalloc(&d_dest, size * sizeof(double));
-    cudaMalloc(&d_u, size * sizeof(double));
-    cudaMalloc(&d_v, size * sizeof(double));
+    cudaMalloc(&dp, size * sizeof(double));
+    cudaMalloc(&du, size * sizeof(double));
+    cudaMalloc(&dv, size * sizeof(double));
 
     // Copy the values in the host arrays up to the device
-    cudaMemcpy(d_u, h_u, size * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_v, h_v, size * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(du, u, size * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(dv, v, size * sizeof(double), cudaMemcpyHostToDevice);
 
     // Compute the dot product of the two vectors
-    mul<<<NUM_BLOCKS, BLOCK_SIZE>>>(size, d_dest, d_u, d_v);
-    double u_dot_v = reduceSum(size, d_dest);
+    mul<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(size, dp, du, dv);
+    double uv = reduceSum(size, dp);
 
     // Compute the square of the magnitude of the first vector
-    mul<<<NUM_BLOCKS, BLOCK_SIZE>>>(size, d_dest, d_u, d_u);
-    double u_mag2 = reduceSum(size, d_dest);
+    mul<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(size, dp, du, du);
+    double u2 = reduceSum(size, dp);
 
     // Compute the square of the magnitude of the second vector
-    mul<<<NUM_BLOCKS, BLOCK_SIZE>>>(size, d_dest, d_v, d_v);
-    double v_mag2 = reduceSum(size, d_dest);
+    mul<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(size, dp, dv, dv);
+    double v2 = reduceSum(size, dp);
 
     // Deallocate space used for the arrays on the device
-    cudaFree(d_dest);
-    cudaFree(d_u);
-    cudaFree(d_v);
+    cudaFree(dp);
+    cudaFree(du);
+    cudaFree(dv);
 
     // Compute and return the angle between the two vectors
-    return acos(u_dot_v / (sqrt(u_mag2) * sqrt(v_mag2)));
+    return acos(uv / (sqrt(u2) * sqrt(v2)));
 }
 
 /// @brief Generate an array of normal random values with the given mean
