@@ -65,4 +65,13 @@ int main(int argc, char *argv[])
     std::cout << "success\ncopying " << d_to_h_size << " ints from device to host..." << std::endl;
     cudaMemcpy(h_vec, d_vec, d_to_h_size * sizeof(int), cudaMemcpyDeviceToHost);
     std::cout << "success" << std::endl;
+
+    int h_fixed[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    std::cout << "success\ncopying " << h_to_d_size << " ints from host (stack size 10) to device..." << std::endl;
+    cudaMemcpy(d_vec, h_fixed, h_to_d_size * sizeof(int), cudaMemcpyHostToDevice);
+
+    std::cout << "success\ncopying " << d_to_h_size << " ints from device to host (stack size 10)..." << std::endl;
+    cudaMemcpy(h_fixed, d_vec, d_to_h_size * sizeof(int), cudaMemcpyDeviceToHost);
+    std::cout << "success" << std::endl;
 }
