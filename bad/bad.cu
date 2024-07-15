@@ -2,6 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <regex>
+#include <sstream>
 
 void show_help(const std::string &cli)
 {
@@ -16,6 +17,22 @@ void show_help(const std::string &cli)
     std::cout << "    h_to_d_size - number of ints to copy from host to device." << std::endl;
     std::cout << "    d_to_h_size - number of ints to copy from device to host." << std::endl;
     std::cout << std::endl;
+}
+
+std::string to_string(std::size_t size, int *arr)
+{
+    std::stringstream ss;
+
+    char delim = '[';
+    for (auto ptr = arr; ptr != arr + size; ++ptr)
+    {
+        ss << delim << (*ptr);
+        delim = ',';
+    }
+
+    ss << ']';
+
+    return ss.str();
 }
 
 int main(int argc, char *argv[])
@@ -47,13 +64,15 @@ int main(int argc, char *argv[])
     const std::size_t h_to_d_size = vals[2];
     const std::size_t d_to_h_size = vals[3];
 
-    std::cout << "allocating host array of " << h_size << " ints..." << std::endl;
+    std::cout << "assigning element on stack and allocating host array of " << h_size << " ints..." << std::endl;
+    int h_fixed = 100;
     int *h_vec = new int[h_size];
     std::cout << "success\ninitializing host array..." << std::endl;
     for (std::size_t i = 0; i < h_size; ++i)
     {
-        h_vec[i] = 0;
+        h_vec[i] = (i + 1) * (i + 2);
     }
+    std::cout << "h_vec: " << std::hex << ((std::size_t)h_vec) << std::dec << " / " << to_string(h_size, h_vec) << std::endl;
 
     int *d_vec;
     std::cout << "success\nallocating device array of " << d_size << " ints." << std::endl;
@@ -66,12 +85,8 @@ int main(int argc, char *argv[])
     cudaMemcpy(h_vec, d_vec, d_to_h_size * sizeof(int), cudaMemcpyDeviceToHost);
     std::cout << "success" << std::endl;
 
-    int h_fixed[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-    std::cout << "success\ncopying " << h_to_d_size << " ints from host (stack size 10) to device..." << std::endl;
-    cudaMemcpy(d_vec, h_fixed, h_to_d_size * sizeof(int), cudaMemcpyHostToDevice);
-
-    std::cout << "success\ncopying " << d_to_h_size << " ints from device to host (stack size 10)..." << std::endl;
-    cudaMemcpy(h_fixed, d_vec, d_to_h_size * sizeof(int), cudaMemcpyDeviceToHost);
-    std::cout << "success" << std::endl;
+    std::cout << "success\ncopying " << d_to_h_size << " ints from device to host (stack)..." << std::endl;
+    cudaMemcpy(&h_fixed, d_vec, d_to_h_size * sizeof(int), cudaMemcpyDeviceToHost);
+    std::cout << "success\n"
+              << "h_vec: " << std::hex << ((std::size_t)h_vec) << std::dec << " / " << to_string(h_size, h_vec) << std::endl;
 }

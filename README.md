@@ -1,19 +1,20 @@
 # map-reduce
 Demonstration of simple map / reduce functions comparing implementations in C++ and CUDA.
-## bad
+## [bad](bad)
 Contains an experiment to see what happens if cudaMemcpy is used to overwrite the bounds of memory allocated either on the stack or on the heap on the host or on the device.
-## basic
+## [basic](basic)
 Contains a single file comparison of how to compute the angle between two vectors in C++ and CUDA.
-## common
+## [common](common)
 Contains common modules used in the other CUDA applications here.
-## cpp
+## [cpp](cpp)
 Contains a C++ implementation of generic map-reduce operations on a purpose built vector class.
-## cuda
+## [cuda](cuda)
 Contains a CUDA implementation of generic map-reduce operations on a purpose built vector class.
-## device
+## [device](device)
 Contains code used to show hardware details about the installed devices.
-## docs
+## [docs](docs)
 Contains spreadsheets showing relative performance metrics for the C++ and CUDA implementations of map-reduce operations.
+
 # context
 The files in the subfolders contained here have been tested on Windows 11 and [Windows Subsystem for Linux Version 2 (WSL2)](https://learn.microsoft.com/en-us/windows/wsl/install) using [Ubuntu 24.04 LTS](https://apps.microsoft.com/detail/9nz3klhxdjp5?amp%3Bgl=US&hl=en-us&gl=US).
 

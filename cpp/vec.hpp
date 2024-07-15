@@ -223,176 +223,6 @@ public:
     friend class vec;
 };
 
-/// @brief Compute and return the element-wise sum of two vectors
-/// @tparam T Type of elements the two vectors contain
-/// @param x Left operand of the vector addition operation
-/// @param y Right operand of the vector addition operation
-/// @return Element-wise sum of the two vectors
-template <typename T>
-vec<T> operator+(const vec<T> &x, const vec<T> &y)
-{
-    return vec<T>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> T
-                                     { return l + r; });
-}
-
-/// @brief Add a scalar value to each element of a vector
-/// @tparam T Type of the scalar and each vector element
-/// @param x Scalar value to serve as the left operand for each vector element
-/// @param y Vector containing the right hand operands for the operation
-/// @return The sum of the given scalar added to each vector element
-template <typename T>
-vec<T> operator+(const T &x, const vec<T> &y)
-{
-    return vec<T>::template map<T>(y, [&x](const T &r, std::size_t idx) -> T
-                                   { return x + r; });
-}
-
-/// @brief Add a scalar value to each element of a vector
-/// @tparam T Type of the scalar and each vector element
-/// @param x Vector containing the left hand operands for the operation
-/// @param y Scalar value to serve as the right operand for each vector element
-/// @return The sum of the given scalar added to each vector element
-template <typename T>
-vec<T> operator+(const vec<T> &x, const T &y)
-{
-    return vec<T>::template map<T>(x, [&y](const T &l, std::size_t idx) -> T
-                                   { return l + y; });
-}
-
-/// @brief Compute and return the element-wise difference of two vectors
-/// @tparam T Type of elements the two vectors contain
-/// @param x Left operand of the vector subtraction operation
-/// @param y Right operand of the vector subtraction operation
-/// @return Element-wise difference of the two vectors
-template <typename T>
-vec<T> operator-(const vec<T> &x, const vec<T> &y)
-{
-    return vec<T>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> T
-                                     { return l - r; });
-}
-
-/// @brief Subtract from a scalar value each element of a vector
-/// @tparam T Type of the scalar and each vector element
-/// @param x Scalar value to serve as the left operand for each vector element
-/// @param y Vector containing the right hand operands for the operation
-/// @return The difference each vector element subtracted from the scalar
-template <typename T>
-vec<T> operator-(const T &x, const vec<T> &y)
-{
-    return vec<T>::template map<T>(y, [&x](const T &r, std::size_t idx) -> T
-                                   { return x - r; });
-}
-
-/// @brief Subtract a scalar value from each element of a vector
-/// @tparam T Type of the scalar and each vector element
-/// @param x Vector containing the left hand operands for the operation
-/// @param y Scalar value to serve as the right operand for each vector element
-/// @return The element-wise difference of the given scalar and each vector element
-template <typename T>
-vec<T> operator-(const vec<T> &x, const T &y)
-{
-    return vec<T>::template map<T>(x, [&y](const T &l, std::size_t idx) -> T
-                                   { return l - y; });
-}
-
-/// @brief Compute and return the element-wise product of two vectors
-/// @tparam T Type of elements the two vectors contain
-/// @param x Left operand of the vector multiplication operation
-/// @param y Right operand of the vector multiplication operation
-/// @return Element-wise product of the two vectors
-template <typename T>
-vec<T> operator*(const vec<T> &x, const vec<T> &y)
-{
-    return vec<T>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> T
-                                     { return l * r; });
-}
-
-/// @brief Multiply a scalar value by each element of a vector
-/// @tparam T Type of the scalar and each vector element
-/// @param x Scalar value to serve as the left operand for each vector element
-/// @param y Vector containing the right hand operands for the operation
-/// @return The product of the scalar and each vector element
-template <typename T>
-vec<T> operator*(const T &x, const vec<T> &y)
-{
-    return vec<T>::template map<T>(y, [&x](const T &r, std::size_t idx) -> T
-                                   { return x * r; });
-}
-
-/// @brief Multiply a scalar value by each element of a vector
-/// @tparam T Type of the scalar and each vector element
-/// @param x Vector containing the left hand operands for the operation
-/// @param y Scalar value to serve as the right operand for each vector element
-/// @return The element-wise product of the given scalar and each vector element
-template <typename T>
-vec<T> operator*(const vec<T> &x, const T &y)
-{
-    return vec<T>::template map<T>(x, [&y](const T &l, std::size_t idx) -> T
-                                   { return l * y; });
-}
-
-/// @brief Compute and return the element-wise quotient of two vectors
-/// @tparam T Type of elements the two vectors contain
-/// @param x Left operand of the vector division operation
-/// @param y Right operand of the vector division operation
-/// @return Element-wise quotient of the two vectors
-template <typename T>
-vec<T> operator/(const vec<T> &x, const vec<T> &y)
-{
-    return vec<T>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> T
-                                     { return l / r; });
-}
-
-/// @brief Divide a scalar value by each element of a vector
-/// @tparam T Type of the scalar and each vector element
-/// @param x Scalar value to serve as the left operand for each vector element
-/// @param y Vector containing the right hand operands for the operation
-/// @return The quotent of the scalar and each vector element
-template <typename T>
-vec<T> operator/(const T &x, const vec<T> &y)
-{
-    return vec<T>::template map<T>(y, [&x](const T &r, std::size_t idx) -> T
-                                   { return x / r; });
-}
-
-/// @brief Divide each element if a vector by a scalar value
-/// @tparam T Type of the scalar and each vector element
-/// @param x Vector containing the left hand operands for the operation
-/// @param y Scalar value to serve as the right operand for each vector element
-/// @return The the vector divided element-wise by a scalar value
-template <typename T>
-vec<T> operator/(const vec<T> &x, const T &y)
-{
-    return vec<T>::template map<T>(x, [&y](const T &l, std::size_t idx) -> T
-                                   { return l / y; });
-}
-
-/// @brief Compare two vectors and return true if they are equal
-/// @tparam T Type of each element of the two arrays
-/// @param x Right vector to compare
-/// @param y Left vector to compare
-/// @return True if and only iff the two vectors are equal
-template <typename T>
-bool operator==(const vec<T> &x, const vec<T> &y)
-{
-    vec<bool> cmp = vec<bool>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> bool
-                                                 { return l == r; });
-
-    return cmp.reduce([](bool l, bool r) -> bool
-                      { return l && r; });
-}
-
-/// @brief Compare two vectors and return true if they are not equal
-/// @tparam T Type of each element of the two arrays
-/// @param x Right vector to compare
-/// @param y Left vector to compare
-/// @return True if and only iff the two vectors are not equal
-template <typename T>
-bool operator!=(const vec<T> &x, const vec<T> &y)
-{
-    return !(x == y);
-}
-
 /// @brief Return the sum of all the elements of the given array
 /// @tparam T Type of elements in the given vector and sum
 /// @param x Vector to sum
@@ -446,13 +276,183 @@ T mag(const vec<T> &x)
     return sqrt(mag2(x));
 }
 
+/// @brief Compute and return the element-wise sum of two vectors
+/// @tparam T Type of elements the two vectors contain
+/// @param x Left operand of the vector addition operation
+/// @param y Right operand of the vector addition operation
+/// @return Element-wise sum of the two vectors
+template <typename T>
+vec<T> operator+(const vec<T> &x, const vec<T> &y)
+{
+    return vec<T>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> T
+                                     { return l + r; });
+}
+
+/// @brief Add a scalar value to each element of a vector
+/// @tparam T Type of the scalar and each vector element
+/// @param x Scalar value to serve as the left operand for each vector element
+/// @param y Vector containing the right hand operands for the operation
+/// @return The sum of the given scalar added to each vector element
+template <typename T>
+vec<T> operator+(const T &x, const vec<T> &y)
+{
+    return vec<T>::template map<T>(y, [x](const T &r, std::size_t idx) -> T
+                                   { return x + r; });
+}
+
+/// @brief Add a scalar value to each element of a vector
+/// @tparam T Type of the scalar and each vector element
+/// @param x Vector containing the left hand operands for the operation
+/// @param y Scalar value to serve as the right operand for each vector element
+/// @return The sum of the given scalar added to each vector element
+template <typename T>
+vec<T> operator+(const vec<T> &x, const T &y)
+{
+    return vec<T>::template map<T>(x, [y](const T &l, std::size_t idx) -> T
+                                   { return l + y; });
+}
+
+/// @brief Compute and return the element-wise difference of two vectors
+/// @tparam T Type of elements the two vectors contain
+/// @param x Left operand of the vector subtraction operation
+/// @param y Right operand of the vector subtraction operation
+/// @return Element-wise difference of the two vectors
+template <typename T>
+vec<T> operator-(const vec<T> &x, const vec<T> &y)
+{
+    return vec<T>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> T
+                                     { return l - r; });
+}
+
+/// @brief Subtract from a scalar value each element of a vector
+/// @tparam T Type of the scalar and each vector element
+/// @param x Scalar value to serve as the left operand for each vector element
+/// @param y Vector containing the right hand operands for the operation
+/// @return The difference each vector element subtracted from the scalar
+template <typename T>
+vec<T> operator-(const T &x, const vec<T> &y)
+{
+    return vec<T>::template map<T>(y, [x](const T &r, std::size_t idx) -> T
+                                   { return x - r; });
+}
+
+/// @brief Subtract a scalar value from each element of a vector
+/// @tparam T Type of the scalar and each vector element
+/// @param x Vector containing the left hand operands for the operation
+/// @param y Scalar value to serve as the right operand for each vector element
+/// @return The element-wise difference of the given scalar and each vector element
+template <typename T>
+vec<T> operator-(const vec<T> &x, const T &y)
+{
+    return vec<T>::template map<T>(x, [y](const T &l, std::size_t idx) -> T
+                                   { return l - y; });
+}
+
+/// @brief Compute and return the element-wise product of two vectors
+/// @tparam T Type of elements the two vectors contain
+/// @param x Left operand of the vector multiplication operation
+/// @param y Right operand of the vector multiplication operation
+/// @return Element-wise product of the two vectors
+template <typename T>
+vec<T> operator*(const vec<T> &x, const vec<T> &y)
+{
+    return vec<T>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> T
+                                     { return l * r; });
+}
+
+/// @brief Multiply a scalar value by each element of a vector
+/// @tparam T Type of the scalar and each vector element
+/// @param x Scalar value to serve as the left operand for each vector element
+/// @param y Vector containing the right hand operands for the operation
+/// @return The product of the scalar and each vector element
+template <typename T>
+vec<T> operator*(const T &x, const vec<T> &y)
+{
+    return vec<T>::template map<T>(y, [x](const T &r, std::size_t idx) -> T
+                                   { return x * r; });
+}
+
+/// @brief Multiply a scalar value by each element of a vector
+/// @tparam T Type of the scalar and each vector element
+/// @param x Vector containing the left hand operands for the operation
+/// @param y Scalar value to serve as the right operand for each vector element
+/// @return The element-wise product of the given scalar and each vector element
+template <typename T>
+vec<T> operator*(const vec<T> &x, const T &y)
+{
+    return vec<T>::template map<T>(x, [y](const T &l, std::size_t idx) -> T
+                                   { return l * y; });
+}
+
+/// @brief Compute and return the element-wise quotient of two vectors
+/// @tparam T Type of elements the two vectors contain
+/// @param x Left operand of the vector division operation
+/// @param y Right operand of the vector division operation
+/// @return Element-wise quotient of the two vectors
+template <typename T>
+vec<T> operator/(const vec<T> &x, const vec<T> &y)
+{
+    return vec<T>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> T
+                                     { return l / r; });
+}
+
+/// @brief Divide a scalar value by each element of a vector
+/// @tparam T Type of the scalar and each vector element
+/// @param x Scalar value to serve as the left operand for each vector element
+/// @param y Vector containing the right hand operands for the operation
+/// @return The quotent of the scalar and each vector element
+template <typename T>
+vec<T> operator/(const T &x, const vec<T> &y)
+{
+    return vec<T>::template map<T>(y, [x](const T &r, std::size_t idx) -> T
+                                   { return x / r; });
+}
+
+/// @brief Divide each element if a vector by a scalar value
+/// @tparam T Type of the scalar and each vector element
+/// @param x Vector containing the left hand operands for the operation
+/// @param y Scalar value to serve as the right operand for each vector element
+/// @return The the vector divided element-wise by a scalar value
+template <typename T>
+vec<T> operator/(const vec<T> &x, const T &y)
+{
+    return vec<T>::template map<T>(x, [y](const T &l, std::size_t idx) -> T
+                                   { return l / y; });
+}
+
+/// @brief Compare two vectors and return true if they are equal
+/// @tparam T Type of each element of the two arrays
+/// @param x Right vector to compare
+/// @param y Left vector to compare
+/// @return True if and only iff the two vectors are equal
+template <typename T>
+bool operator==(const vec<T> &x, const vec<T> &y)
+{
+    vec<bool> cmp = vec<bool>::template op<T, T>(x, y, [](const T &l, const T &r, std::size_t idx) -> bool
+                                                 { return l == r; });
+
+    return cmp.reduce([](bool l, bool r) -> bool
+                      { return l && r; });
+}
+
+/// @brief Compare two vectors and return true if they are not equal
+/// @tparam T Type of each element of the two arrays
+/// @param x Right vector to compare
+/// @param y Left vector to compare
+/// @return True if and only iff the two vectors are not equal
+template <typename T>
+bool operator!=(const vec<T> &x, const vec<T> &y)
+{
+    return !(x == y);
+}
+
 /// @brief Stream the string representation of the vector to the given output stream
 /// @tparam T Type of each element in the vector
 /// @param os Output stream where the vector will be sent
 /// @param vec Vector to send the output stream
 /// @return Output stream where the vector was sent
 template <typename T>
-std::ostream &operator<<(std::ostream &os, const vec<T> vec)
+std::ostream &operator<<(std::ostream &os, const vec<T> &vec)
 {
     os << vec.to_string();
     return os;
