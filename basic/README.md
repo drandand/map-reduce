@@ -9,17 +9,23 @@ On Windows, the executable will be named "basic.exe" and is invoked using:
 
 ```basic.exe```
 
-## [basic.cu](basic.cu)
+## source code
+
+### [basic.cu](basic.cu)
 Source code contrasting approaches to compute the angle between two vectors using C++ and CUDA.
 
-## [build.bat](build.bat)
-Script to build an executable on a Windows host using nvcc and msvc (cl).  This will generate and executable file, "basic.exe" and some intermediate files, all of which can be removed using clean.bat.
+## bash scripts
 
-## [build.sh](build.sh)
+### [build.sh](build.sh)
 Script to build an executable on Linux (including WSL2) using nvcc and gcc.  As of this writing, nvcc 12.5 is the latest version available within the CUDA toolkit and is not compatible with gcc version 14 or later.  This will result in a single executable file named "basic" which can be removed using the clean.sh script.
 
-## [clean.bat](clean.bat)
-Script to remove the products generated when running build.bat.
-
-## [clean.sh](clean.sh)
+### [clean.sh](clean.sh)
 Script to remove products generated when running build.sh.
+
+## windows scripts
+
+### [build.bat](build.bat)
+Script to build an executable on a Windows host using nvcc and msvc (cl).  This will generate and executable file, "basic.exe" and some intermediate files, all of which can be removed using clean.bat.
+
+### [clean.bat](clean.bat)
+Script to remove the products generated when running build.bat.

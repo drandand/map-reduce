@@ -1,22 +1,52 @@
-
-#include <iostream>
-#include <curand_kernel.h>
-#include <chrono>
-#include <unordered_map>
-#include <cuda.h>
-#include <cudaProfiler.h>
-
 #include "vec.cuh"
 #include "cuda_exception.cuh"
 #include "cuda_helpers.cuh"
 #include "cuda_constants.cuh"
+#include <cuda.h>
+#include <cudaProfiler.h>
+#include <curand_kernel.h>
 
-#define INIT "initialize"
-#define OPER "operation"
-#define COPY "copy"
-#define VERI "verify"
-#define THETA0 "theta0"
-#define THETA1 "theta1"
+#include <iostream>
+#include <chrono>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <regex>
+#include <exception>
+
+const std::string INIT("initialize");
+const std::string OPER("operation");
+const std::string COPY("copy");
+const std::string VERI("verify");
+const std::string THETA0("theta0");
+const std::string THETA1("theta1");
+
+constexpr std::size_t DEFAULT_SIZE = 65536;
+constexpr double RAD_TO_DEG = 5.72957795130823e1;
+
+/// @brief Provide information about this program and its usage
+/// @param cli CLI invokation for this run
+void show_help(const std::string &cli)
+{
+    std::cout << "This conduct performance metrics on the CUDA implementation of the vector" << std::endl;
+    std::cout << "operations." << std::endl
+              << std::endl;
+    std::cout << "This takes zero (0) or more positive integer arguments in the command line." << std::endl
+              << std::endl;
+    std::cout << "Each of the arguments represents a length of the vectors to use in the" << std::endl;
+    std::cout << "benchmarking, where two vectors of the size are randomly generated and the" << std::endl;
+    std::cout << "angle between the two is computed and the time taken to perform different" << std::endl;
+    std::cout << "aspects of the operation timed." << std::endl
+              << std::endl;
+    std::cout << "The timing performed is for the initialization of the two arrays, computing" << std::endl;
+    std::cout << "the angle betwee the vectors and verifying the results." << std::endl
+              << std::endl;
+    std::cout << "If no sizes are given, a single run with " << DEFAULT_SIZE << " vector" << std::endl;
+    std::cout << "elements." << std::endl
+              << std::endl;
+    std::cout << "usage: " << cli << " [size0 [size1 [size2 [...]]]]" << std::endl
+              << std::endl;
+}
 
 /// @brief Return the nanosecond timestamp from the start of the POSIX epoch
 /// @return Number of nanoseconds from the start of the POSIX epoch
@@ -46,15 +76,12 @@ __device__ double normal(double mean, double stdev, unsigned long long seed, int
 /// @return Map containing the time for each phase of the test (initialize and compute)
 std::unordered_map<std::string, double> run_test(std::size_t size)
 {
-    double mean = 0.0;
-    double stdev = 1.0;
-
     unsigned long long seed = time_ns();
-    auto norm0 = [seed, mean, stdev] __device__(std::size_t idx) -> double
-    { return normal(mean, stdev, seed - 1, idx); };
+    auto norm0 = [seed] __device__(std::size_t idx) -> double
+    { return normal(0.0, 1.0, seed - 1, idx); };
 
-    auto norm1 = [seed, mean, stdev] __device__(std::size_t idx) -> double
-    { return normal(mean, stdev, seed + 1, idx); };
+    auto norm1 = [seed] __device__(std::size_t idx) -> double
+    { return normal(0.0, 1.0, seed + 1, idx); };
 
     double sum_dot = 0.0;
     double sum_x = 0.0;
@@ -66,9 +93,6 @@ std::unordered_map<std::string, double> run_test(std::size_t size)
     auto t0_stop = time_ns();
 
     auto t1_start = time_ns();
-    double dot_xy = dot(x, y);
-    double mag_x = mag(x);
-    double mag_y = mag(y);
     double theta0 = acos(dot(x, y) / (mag(x) * mag(y)));
     auto t1_stop = time_ns();
 
@@ -99,6 +123,36 @@ std::unordered_map<std::string, double> run_test(std::size_t size)
     return ret;
 }
 
+/// @brief Parse input arguments to get the vector sizes for performing
+/// the benchmarking
+/// @param argc Number of command line arguments provided
+/// @param argv Array of C-style strings containing the command line
+/// arguments provided when the program is invoked.
+/// @return Vector containing the vector sizes to use as benchmarks
+std::vector<std::size_t> get_sizes(int argc, char *argv[])
+{
+    std::regex pattern("^\\d+$");
+
+    std::vector<std::string> args(argv + 1, argv + argc);
+    std::vector<std::size_t> vals;
+
+    for (auto arg : args)
+    {
+        if (!std::regex_match(arg, pattern))
+        {
+            throw std::invalid_argument("Received non-integer argument");
+        }
+        vals.push_back(std::stoi(arg));
+    }
+
+    if (vals.size() == 0)
+    {
+        vals.push_back(DEFAULT_SIZE);
+    }
+
+    return vals;
+}
+
 /// @brief Main function called when program starts
 /// @param argc Number of command line arguments provided
 /// @param argv Array of C-style strings containing the command line
@@ -106,23 +160,18 @@ std::unordered_map<std::string, double> run_test(std::size_t size)
 /// @return 0 if no error occurred; not 0 for any instance where an error occurred
 int main(int argc, char *argv[])
 {
-    std::vector<std::string> args(argv + 1, argv + argc);
     std::vector<std::size_t> sizes;
 
-    for (std::string arg : args)
+    try
     {
-        sizes.push_back(std::atoi(arg.c_str()));
+        sizes = get_sizes(argc, argv);
     }
-
-    if (sizes.size() == 0)
+    catch (std::invalid_argument e)
     {
-        sizes.push_back(65536);
+        std::string cli(argv[0]);
+        show_help(cli);
+        return -1;
     }
-
-    constexpr double rad_to_deg = 180.0 / 3.141592653589793238463;
-
-    CUresult err_code = cuInit(0);
-    verify_code(err_code, "cuInit");
 
     for (auto size : sizes)
     {
@@ -132,8 +181,8 @@ int main(int argc, char *argv[])
                   << OPER << ": " << perf[OPER] << " ms / "
                   << COPY << ": " << perf[COPY] << " ms / "
                   << VERI << ": " << perf[VERI] << " ms / "
-                  << THETA0 << ": " << perf[THETA0] << " rad / " << perf[THETA0] * rad_to_deg << " deg / "
-                  << THETA1 << ": " << perf[THETA1] << " rad / " << perf[THETA1] * rad_to_deg << " deg "
+                  << THETA0 << ": " << perf[THETA0] << " rad / " << perf[THETA0] * RAD_TO_DEG << " deg / "
+                  << THETA1 << ": " << perf[THETA1] << " rad / " << perf[THETA1] * RAD_TO_DEG << " deg "
                   << std::endl;
     }
 
