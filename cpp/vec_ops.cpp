@@ -4,20 +4,30 @@
 
 #include <iostream>
 #include <chrono>
-#include <unordered_map>
 #include <string>
 #include <vector>
 #include <regex>
 #include <exception>
+#include <unordered_map>
 
-const std::string INIT("initialize");
-const std::string OPER("operation");
-const std::string VERI("verify");
-const std::string THETA0("theta0");
-const std::string THETA1("theta1");
+const std::string SIZE("size");
+const std::string INIT("init (ms)");
+const std::string OPER("oper (ms)");
+const std::string VERI("veri (ms)");
+const std::string T0RD("theta 0 rad");
+const std::string T0DG("theta 0 deg");
+const std::string T1RD("theta 1 rad");
+const std::string T1DG("theta 1 deg");
+const std::string DRAD("theta diff rad");
+const std::string DDEG("theta diff deg");
+
+const std::vector<std::string> LABELS = {SIZE, INIT, OPER, VERI, T0RD, T0DG, T1RD, T1DG, DRAD, DDEG};
 
 constexpr std::size_t DEFAULT_SIZE = 65536;
 constexpr double RAD_TO_DEG = 5.72957795130823e1;
+
+typedef std::unordered_map<std::string, double> performance;
+typedef std::vector<performance> performance_list;
 
 /// @brief Provide information about this program and its usage
 /// @param cli CLI invokation for this run
@@ -56,8 +66,8 @@ long long time_ns()
 /// @brief Run a test where two vectors are generated with random values and then the angle between them is computed
 /// @param size Number of elements in each vector generated
 /// @param gen Generator of random values to feed the distribution
-/// @return Map containing the time for each phase of the test (initialize and compute)
-std::unordered_map<std::string, double> run_test(std::size_t size, std::mt19937 &gen)
+/// @return Vector containing outcomes for this test case
+performance run_test(std::size_t size, std::mt19937 &gen)
 {
     std::normal_distribution<double> dist(0.0, 1.0);
     auto norm0 = [&gen, &dist](std::size_t idx)
@@ -74,10 +84,13 @@ std::unordered_map<std::string, double> run_test(std::size_t size, std::mt19937 
     vec<double> x(size, norm0);
     vec<double> y(size, norm1);
     auto t0_stop = time_ns();
+    double init = (t0_stop - t0_start) * 1e-6;
 
     auto t1_start = time_ns();
-    double theta0 = acos(dot(x, y) / (mag(x) * mag(y)));
+    double theta0_rad = acos(dot(x, y) / (mag(x) * mag(y)));
     auto t1_stop = time_ns();
+    double oper = (t1_stop - t1_start) * 1e-6;
+    double theta0_deg = theta0_rad * RAD_TO_DEG;
 
     auto t3_start = time_ns();
     for (std::size_t idx = 0; idx < size; ++idx)
@@ -86,18 +99,26 @@ std::unordered_map<std::string, double> run_test(std::size_t size, std::mt19937 
         sum_x += x[idx] * x[idx];
         sum_y += y[idx] * y[idx];
     }
-    double theta1 = acos(sum_dot / (sqrt(sum_x) * sqrt(sum_y)));
+    double theta1_rad = acos(sum_dot / (sqrt(sum_x) * sqrt(sum_y)));
     auto t3_stop = time_ns();
+    double veri = (t3_stop - t3_start) * 1e-6;
+    double theta1_deg = theta1_rad * RAD_TO_DEG;
+    double theta_diff_rad = abs(theta0_rad - theta1_rad);
+    double theta_diff_deg = abs(theta0_deg - theta1_deg);
 
-    std::unordered_map<std::string, double> ret = {
-        {INIT, (t0_stop - t0_start) * 1e-6},
-        {OPER, (t1_stop - t1_start) * 1e-6},
-        {VERI, (t3_stop - t3_start) * 1e-6},
-        {THETA0, theta0},
-        {THETA1, theta1},
-    };
+    performance results = {
+        {SIZE, (double)size},
+        {INIT, init},
+        {OPER, oper},
+        {VERI, veri},
+        {T0RD, theta0_rad},
+        {T0DG, theta0_deg},
+        {T1RD, theta1_rad},
+        {T1DG, theta1_deg},
+        {DRAD, theta_diff_rad},
+        {DDEG, theta_diff_deg}};
 
-    return ret;
+    return results;
 }
 
 /// @brief Parse input arguments to get the vector sizes for performing
@@ -130,6 +151,34 @@ std::vector<std::size_t> get_sizes(int argc, char *argv[])
     return vals;
 }
 
+/// @brief Display the results in a CSV compliant format
+/// @param results Results to print
+void report(const performance_list &results)
+{
+    bool first = true;
+    for (auto label : LABELS)
+    {
+        if (!first)
+            std::cout << ',';
+        std::cout << "\"" << label << "\"";
+        first = false;
+    }
+    std::cout << std::endl;
+
+    for (auto result : results)
+    {
+        first = true;
+        for (auto label : LABELS)
+        {
+            if (!first)
+                std::cout << ',';
+            std::cout << result[label];
+            first = false;
+        }
+        std::cout << std::endl;
+    }
+}
+
 /// @brief Main function called when program starts
 /// @param argc Number of command line arguments provided
 /// @param argv Array of C-style strings containing the command line
@@ -151,17 +200,11 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    performance_list results;
     for (auto size : sizes)
-    {
-        std::unordered_map<std::string, double> perf = run_test(size, gen);
-        std::cout << " count: " << size << " / "
-                  << INIT << ": " << perf[INIT] << " ms / "
-                  << OPER << ": " << perf[OPER] << " ms / "
-                  << VERI << ": " << perf[VERI] << " ms / "
-                  << THETA0 << ": " << perf[THETA0] << " rad / " << perf[THETA0] * RAD_TO_DEG << " deg / "
-                  << THETA1 << ": " << perf[THETA1] << " rad / " << perf[THETA1] * RAD_TO_DEG << " deg "
-                  << std::endl;
-    }
+        results.push_back(run_test(size, gen));
+
+    report(results);
 
     return 0;
 }
