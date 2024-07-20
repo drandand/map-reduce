@@ -6,3 +6,6 @@ The AMD folder contains performance time measurements for a system containing an
 
 ## [intel](intel)
 The Intel folder contains performance time measurements for a system containing an [Intel Core i7 11850H 8 Core / 16 Thread 2.5 GHz](https://www.intel.com/content/www/us/en/products/sku/213799/intel-core-i711850h-processor-24m-cache-up-to-4-80-ghz/specifications.html) processor and an [NVIDIA RTX A3000 Laptop GPU](https://www.techpowerup.com/gpu-specs/rtx-a3000-mobile.c3806) based graphics card.
+
+## [performance.xlsx](performance.xlsx)
+This contains aggregated data from the .csv files in the subfolders to generate graphs depicting relative performance for each of the configurations.

@@ -26,6 +26,3 @@ Provides performance data for running the test suite in cuda with the vec_ops ap
 
 ## [cuda_nvcc_windows_rate.csv](cuda_nvcc_windows_rate.csv)
 Provides performance data for running the test suite in cuda with the vec_ops.exe application compiled using the nvcc / mscv compiler running on a Windows platform.
-
-## [rate.xlsx](rate.xlsx)
-This contains aggregated data from the .csv files to generate graphs depicting relative performance for each of the configurations as captured in the .csv files in this folder.
