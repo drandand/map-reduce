@@ -64,16 +64,32 @@ long long time_ns()
         .count();
 }
 
-/// @brief Call a function which takes no arguments but returns a value of type T and time how long
-/// it takes to call that function.
-/// @tparam T Return type of the function
+/// @brief Compute the length of time (milliseconds) it takes for a function to operate
+/// @tparam FUNC Function type to call
+/// @tparam ARGS Argument types to pass to the function
 /// @param fn Function to time
-/// @return Pair containing the result of calling the function and the time it took to run the function
-template <typename T>
-std::pair<T, double> timer_ms(std::function<T()> fn)
+/// @return Time in (milliseconds) it took to run the function
+template <typename FUNC, typename... ARGS>
+double timer_ms_void(FUNC fn, ARGS &&...args)
 {
     auto t0 = time_ns();
-    T result = fn();
+    fn(std::forward<ARGS>(args)...);
+    auto t1 = time_ns();
+
+    return (t1 - t0) * 1e-6;
+}
+
+/// @brief Call a function which takes no arguments but returns a value of type T and time how long
+/// it takes to call that function.
+/// @tparam FUNC Function type to call
+/// @tparam ARGS Argument types to pass to the function
+/// @param fn Function to time
+/// @return Pair containing the result of calling the function and the time it took to run the function
+template <typename T, typename FUNC, typename... ARGS>
+std::pair<T, double> timer_ms_ret(FUNC fn, ARGS &&...args)
+{
+    auto t0 = time_ns();
+    T result = fn(std::forward<ARGS>(args)...);
     auto t1 = time_ns();
 
     return std::make_pair(result, (t1 - t0) * 1e-6);
@@ -81,7 +97,6 @@ std::pair<T, double> timer_ms(std::function<T()> fn)
 
 /// @brief Compute the angle between the two vectors given.  This uses
 /// traditional C to perform the computation.
-/// @param size Number of elements in the two vectors
 /// @param u First array on host to use in the angle computation
 /// @param v Second array on host to use in the angle computation
 /// @return Angle (radians) between the two vectors
@@ -107,6 +122,17 @@ double cppAngle(const vec<double> &u, const vec<double> &v)
     return acos(uv / (sqrt(u2) * sqrt(v2)));
 }
 
+/// @brief Compute the angle between the two vectors given.  This uses
+/// the vec class operators to compute the value of the angles.
+/// @param size Number of elements in the two vectors
+/// @param u First array on host to use in the angle computation
+/// @param v Second array on host to use in the angle computation
+/// @return Angle (radians) between the two vectors
+double vecAngle(const vec<double> &u, const vec<double> &v)
+{
+    return acos(dot(u, v) / (mag(u) * mag(v)));
+}
+
 /// @brief Build a pair of vectors of the given size
 /// @param count Number of vectors to build
 /// @param size Number of elements each vec will contain
@@ -130,19 +156,16 @@ std::vector<vec<double>> build_vectors(std::size_t count, std::size_t size)
 /// @return Vector containing outcomes for this test case
 performance run_test(std::size_t size)
 {
-    auto init = timer_ms<std::vector<vec<double>>>([size]()
-                                                   { return build_vectors(2, size); });
+    auto init = timer_ms_ret<std::vector<vec<double>>>(build_vectors, 2, size);
 
     vec<double> &u = init.first[0];
     vec<double> &v = init.first[1];
 
-    auto oper = timer_ms<double>([&u, &v]() -> double
-                                 { return acos(dot(u, v) / (mag(u) * mag(v))); });
+    auto oper = timer_ms_ret<double>(vecAngle, u, v);
     double theta0_rad = oper.first;
     double theta0_deg = theta0_rad * RAD_TO_DEG;
 
-    auto veri = timer_ms<double>([&u, &v]() -> double
-                                 { return cppAngle(u, v); });
+    auto veri = timer_ms_ret<double>(cppAngle, u, v);
     double theta1_rad = veri.first;
     double theta1_deg = theta1_rad * RAD_TO_DEG;
 
