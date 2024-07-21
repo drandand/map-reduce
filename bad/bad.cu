@@ -4,6 +4,8 @@
 #include <regex>
 #include <sstream>
 
+/// @brief Display information about how to use this program
+/// @param cli CLI command used to invoke this program (from main, argv[0])
 void show_help(const std::string &cli)
 {
     std::cout << "This explores what happens when copying memory to or from a CUDA device." << std::endl;
@@ -19,6 +21,10 @@ void show_help(const std::string &cli)
     std::cout << std::endl;
 }
 
+/// @brief Convert an array of the shown size into a string so it can be displayed
+/// @param size Number of elements in the array to display
+/// @param arr Pointer to the start of the array to display
+/// @return String representation of the array passed in arr
 std::string to_string(std::size_t size, int *arr)
 {
     std::stringstream ss;
@@ -35,6 +41,10 @@ std::string to_string(std::size_t size, int *arr)
     return ss.str();
 }
 
+/// @brief Entry point for the program
+/// @param argc Number of input arguments from the CLI
+/// @param argv Array of all the input arguments from the CLI
+/// @return 0 if all went well, something else if it didn't go well
 int main(int argc, char *argv[])
 {
     std::string cli = argv[0];

@@ -15,14 +15,14 @@ Each of these files contains information about the performance for each of the a
 * theta diff rad - Difference in the angle (radians) between the angle measurements of both methods
 * theta diff deg - Difference in the angle (degrees) between the angle measurements of both methods
 
-## [cpp_gcc_rate.csv](cpp_gcc_rate.csv)
+## [cpp_wsl2.csv](cpp_wsl2.csv)
 Provides performance data for running the test suite in cpp with the vec_ops application compiled using the gcc compiler running in WSL2 (Ubuntu 24.04 LTS).
 
-## [cpp_msvc_rate.csv](cpp_msvc_rate.csv)
+## [cpp_win11.csv](cpp_win11.csv)
 Provides performance data for running the test suite in cpp with the vec_ops.exe application compiled using the mscv compiler running on a Windows platform.
 
-## [cuda_nvcc_ubuntu_rate.csv](cuda_nvcc_ubuntu_rate.csv)
+## [cuda_wsl2.csv](cuda_wsl2.csv)
 Provides performance data for running the test suite in cuda with the vec_ops application compiled using the nvcc / gcc compiler running in WSL2 (Ubuntu 24.04 LTS).
 
-## [cuda_nvcc_windows_rate.csv](cuda_nvcc_windows_rate.csv)
+## [cuda_win11.csv](cuda_win11.csv)
 Provides performance data for running the test suite in cuda with the vec_ops.exe application compiled using the nvcc / mscv compiler running on a Windows platform.

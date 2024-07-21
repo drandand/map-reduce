@@ -13,6 +13,7 @@
 #include <regex>
 #include <exception>
 #include <unordered_map>
+#include <functional>
 
 const std::string SIZE("size");
 const std::string INIT("init (ms)");
@@ -68,6 +69,49 @@ long long time_ns()
         .count();
 }
 
+/// @brief Call a function which takes no arguments but returns a value of type T and time how long
+/// it takes to call that function.
+/// @tparam T Return type of the function
+/// @param fn Function to time
+/// @return Pair containing the result of calling the function and the time it took to run the function
+template <typename T>
+std::pair<T, double> timer_ms(std::function<T()> fn)
+{
+    auto t0 = time_ns();
+    T result = fn();
+    auto t1 = time_ns();
+
+    return std::make_pair(result, (t1 - t0) * 1e-6);
+}
+
+/// @brief Compute the angle between the two vectors given.  This uses
+/// traditional C to perform the computation.
+/// @param size Number of elements in the two vectors
+/// @param u First array on host to use in the angle computation
+/// @param v Second array on host to use in the angle computation
+/// @return Angle (radians) between the two vectors
+double cppAngle(const vec<double> &u, const vec<double> &v)
+{
+    assert(u.size() == v.size());
+
+    // Places to hold the sum for the dot procuct and the
+    // squared magnitude of each of the vectors
+    double uv = 0.0;
+    double u2 = 0.0;
+    double v2 = 0.0;
+
+    // Compute each of the sums
+    for (std::size_t idx = 0; idx < u.size(); ++idx)
+    {
+        uv += u.get(idx) * v.get(idx);
+        u2 += u.get(idx) * u.get(idx);
+        v2 += v.get(idx) * v.get(idx);
+    }
+
+    // Compute and return the angle between the two vectors
+    return acos(uv / (sqrt(u2) * sqrt(v2)));
+}
+
 /// @brief Retrieve normally distributed random values on the CUDA device kernel
 /// @param mean Mean to feed to the distribution
 /// @param stdev Standard deviation to feed to the distribution
@@ -81,60 +125,61 @@ __device__ double normal(double mean, double stdev, unsigned long long seed, int
     return curand_normal_double(&state);
 }
 
+/// @brief Build a pair of vectors of the given size
+/// @param count Number of vectors to build
+/// @param size Number of elements each vec will contain
+/// @return A vector of lenght 'count' containing vec's of length 'size'
+std::vector<vec<double>> build_vectors(std::size_t count, std::size_t size)
+{
+    unsigned long long seed = time_ns();
+
+    std::vector<vec<double>> result;
+    for (std::size_t idx = 0; idx < count; ++idx)
+    {
+        auto norm = [seed, idx] __device__(std::size_t i) -> double
+        { return normal(0.0, 1.0, seed + idx, i); };
+        result.push_back(vec<double>(size, norm));
+    }
+
+    return result;
+}
+
 /// @brief Run a test where two vectors are generated with random values and then the angle between them is computed
 /// @param size Number of elements in each vector generated
 /// @return Vector containing outcomes for this test case
 performance run_test(std::size_t size)
 {
-    unsigned long long seed = time_ns();
-    auto norm0 = [seed] __device__(std::size_t idx) -> double
-    { return normal(0.0, 1.0, seed - 1, idx); };
+    auto init = timer_ms<std::vector<vec<double>>>([size]()
+                                                   { return build_vectors(2, size); });
 
-    auto norm1 = [seed] __device__(std::size_t idx) -> double
-    { return normal(0.0, 1.0, seed + 1, idx); };
+    vec<double> &u = init.first[0];
+    vec<double> &v = init.first[1];
 
-    double sum_dot = 0.0;
-    double sum_x = 0.0;
-    double sum_y = 0.0;
-
-    auto t0_start = time_ns();
-    vec<double> x(size, norm0);
-    vec<double> y(size, norm1);
-    auto t0_stop = time_ns();
-    double init = (t0_stop - t0_start) * 1e-6;
-
-    auto t1_start = time_ns();
-    double theta0_rad = acos(dot(x, y) / (mag(x) * mag(y)));
-    auto t1_stop = time_ns();
-    double oper = (t1_stop - t1_start) * 1e-6;
+    auto oper = timer_ms<double>([&u, &v]() -> double
+                                 { return acos(dot(u, v) / (mag(u) * mag(v))); });
+    double theta0_rad = oper.first;
     double theta0_deg = theta0_rad * RAD_TO_DEG;
 
-    auto t2_start = time_ns();
-    x.to_host();
-    y.to_host();
-    auto t2_stop = time_ns();
-    double copy = (t2_stop - t2_start) * 1e-6;
+    auto copy = timer_ms<int>([&u, &v]() -> int
+                              {
+                                u.to_host();
+                                v.to_host();
+                                return 0; });
 
-    auto t3_start = time_ns();
-    for (std::size_t idx = 0; idx < size; ++idx)
-    {
-        sum_dot += x[idx] * y[idx];
-        sum_x += x[idx] * x[idx];
-        sum_y += y[idx] * y[idx];
-    }
-    double theta1_rad = acos(sum_dot / (sqrt(sum_x) * sqrt(sum_y)));
-    auto t3_stop = time_ns();
-    double veri = (t3_stop - t3_start) * 1e-6;
+    auto veri = timer_ms<double>([&u, &v]() -> double
+                                 { return cppAngle(u, v); });
+    double theta1_rad = veri.first;
     double theta1_deg = theta1_rad * RAD_TO_DEG;
+
     double theta_diff_rad = abs(theta0_rad - theta1_rad);
     double theta_diff_deg = abs(theta0_deg - theta1_deg);
 
     performance results = {
         {SIZE, (double)size},
-        {INIT, init},
-        {OPER, oper},
-        {COPY, copy},
-        {VERI, veri},
+        {INIT, init.second},
+        {OPER, oper.second},
+        {COPY, copy.second},
+        {VERI, veri.second},
         {T0RD, theta0_rad},
         {T0DG, theta0_deg},
         {T1RD, theta1_rad},
